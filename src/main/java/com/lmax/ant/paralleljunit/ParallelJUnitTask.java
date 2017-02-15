@@ -59,6 +59,8 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.lang.Math.max;
 import static java.util.Arrays.asList;
@@ -115,23 +117,24 @@ public class ParallelJUnitTask extends Task implements ParallelJUnitTaskConfig
                                                             new AdditiveParser(numberParser, availableProcessors),
                                                             numberParser);
 
-    private Collection<DelegatingBatchTest> batchTests = new LinkedList<DelegatingBatchTest>();
     private final List<FormatterElement> formatters = new LinkedList<FormatterElement>();
     private Queue<JUnitTest> testQueue;
+
+    private String tests = "";
+    private String toDir = "";
 
     public ParallelJUnitTask()
     {
     }
 
     ParallelJUnitTask(final CommandlineJava commandLine, final Environment environment, final WorkerCoordinator workerCoordinator, final BatchTestFactory batchTestFactory,
-                      final ThreadsParser threadsParser, final Collection<DelegatingBatchTest> batchTests)
+                      final ThreadsParser threadsParser)
     {
         this.commandLine = commandLine;
         this.environment = environment;
         this.workerCoordinator = workerCoordinator;
         this.batchTestFactory = batchTestFactory;
         this.threadsParser = threadsParser;
-        this.batchTests = batchTests;
     }
 
     @Override
@@ -254,21 +257,6 @@ public class ParallelJUnitTask extends Task implements ParallelJUnitTaskConfig
         this.threads = max(1, threadsParser.parse(threads));
     }
 
-    public DelegatingBatchTest createBatchTest()
-    {
-        final DelegatingBatchTest batchTest = batchTestFactory.createBatchTest(getProject());
-        batchTest.setFiltertrace(filterTrace);
-        batchTest.setHaltonerror(haltOnError);
-        batchTest.setErrorProperty(errorProperty);
-        batchTest.setHaltonfailure(haltOnFailure);
-        batchTest.setFailureProperty(failureProperty);
-        for (final FormatterElement formatter : formatters)
-        {
-            batchTest.addFormatter(formatter);
-        }
-        batchTests.add(batchTest);
-        return batchTest;
-    }
 
     public void addFormatter(final FormatterElement formatter)
     {
@@ -415,22 +403,31 @@ public class ParallelJUnitTask extends Task implements ParallelJUnitTaskConfig
         return threads;
     }
 
-    private void populateTestQueue()
-    {
-        final List<JUnitTest> testList = new LinkedList<JUnitTest>();
-        for (final DelegatingBatchTest batchTest : batchTests)
-        {
-            final Enumeration<JUnitTest> enumerationOfTests = batchTest.elements();
-            while (enumerationOfTests.hasMoreElements())
-            {
-                testList.add(enumerationOfTests.nextElement());
-            }
-        }
+    private void populateTestQueue() {
+        List<JUnitTest> testList = Stream.of(tests.split(",")).map(testName -> {
+            JUnitTest test = new JUnitTest(testName);
+            test.setFiltertrace(filterTrace);
+            test.setHaltonerror(haltOnError);
+            test.setErrorProperty(errorProperty);
+            test.setHaltonfailure(haltOnFailure);
+            test.setFailureProperty(failureProperty);
+            test.setTodir(new File(toDir));
+            formatters.forEach(test::addFormatter);
+            return test;
+        }).collect(Collectors.toList());
 
-        if (shuffle)
-        {
+        if (shuffle) {
             Collections.shuffle(testList);
         }
         testQueue = new ArrayBlockingQueue<JUnitTest>(testList.size() + 1, false, testList);
     }
+
+    public void setToDir(String toDir) {
+        this.toDir = toDir;
+    }
+
+    public void setTests(final String tests) {
+        this.tests = tests;
+    }
+
 }

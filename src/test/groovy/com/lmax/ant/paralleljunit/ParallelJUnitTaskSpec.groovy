@@ -13,20 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.lmax.ant.paralleljunit;
-
+package com.lmax.ant.paralleljunit
 
 import com.lmax.ant.paralleljunit.remote.process.RemoteTestRunner
 import org.apache.tools.ant.BuildException
 import org.apache.tools.ant.Project
 import org.apache.tools.ant.taskdefs.optional.junit.FormatterElement
 import org.apache.tools.ant.taskdefs.optional.junit.JUnitTest
-import org.apache.tools.ant.types.Assertions
-import org.apache.tools.ant.types.CommandlineJava
-import org.apache.tools.ant.types.EnumeratedAttribute
-import org.apache.tools.ant.types.Environment
-import org.apache.tools.ant.types.Path
-import org.apache.tools.ant.types.PropertySet
+import org.apache.tools.ant.types.*
 import spock.lang.Specification
 import spock.lang.Subject
 
@@ -44,7 +38,7 @@ public class ParallelJUnitTaskSpec extends Specification {
     private List<DelegatingBatchTest> batchTests = []
 
     @Subject
-    private ParallelJUnitTask task = new ParallelJUnitTask(commandlineJava, environment, workerCoordinator, batchTestFactory, threadsParser, batchTests)
+    private ParallelJUnitTask task = new ParallelJUnitTask(commandlineJava, environment, workerCoordinator, threadsParser, batchTests)
 
     def setup() {
         task.project = project
